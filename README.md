@@ -46,3 +46,7 @@ Every layer knows how to do two things: pass data forward, and pass an error bac
 - **Update:** each weight takes a small step against its blame, `W ← W − learningRate · dL/dW`, where `learningRate` controls the step size. The next prediction is then a bit less wrong.
 
 Stack a few of these and you have a network that learns, or tries to atleast.
+
+## References
+
+- [Samson Zhang](https://www.youtube.com/watch?v=w8yWXqWQYmU)
