@@ -52,24 +52,12 @@ class relu(activation):
         reluPrime = lambda x: (x > 0).astype(float)
         super().__init__(relu, reluPrime)
 
-class softmax(activation):
-    def __init__(self):
-        softmax = lambda x: np.exp(x - np.max(x)) / np.sum(np.exp(x - np.max(x)), axis=0, keepdims=True)
-        softmaxPrime = lambda x: softmax(x) * (1 - softmax(x))
-        super().__init__(softmax, softmaxPrime)
-
 # loss functions
 def meanSquaredError(trueY, predY):
     return np.mean((trueY - predY)**2)
 
 def meanSquaredErrorPrime(trueY, predY):
     return (2 * (predY - trueY)) / np.size(trueY)
-
-def crossEntropyLoss(trueY, predY):
-    return -np.sum(trueY * np.log(predY + 1e-9)) / trueY.shape[1]
-
-def crossEntropyLossPrime(trueY, predY):
-    return -(trueY / (predY + 1e-9))
 
 # neural networks
 class neuralNetwork:
@@ -84,27 +72,6 @@ class neuralNetwork:
 
     def backwardPropagation(self):
         pass
-
-class softmaxNetwork(neuralNetwork):
-    def __init__(self, inputSize, hiddenSize, outputSize):
-        self.firstLayer = dense(inputSize, hiddenSize)
-        self.secondLayer = dense(hiddenSize, outputSize)
-        self.inputActivation = relu()
-        self.outputActivation = softmax()
-    
-    def forwardPropagation(self, input):
-        self.hiddenOutput = self.firstLayer.forwardPropagation(input)
-        self.activatedHidden = self.inputActivation.forwardPropagation(self.hiddenOutput)
-        self.finalOutput = self.secondLayer.forwardPropagation(self.activatedHidden)
-        self.activatedOutput = self.outputActivation.forwardPropagation(self.finalOutput)
-        return self.activatedOutput
-
-    def backwardPropagation(self, trueY, learningRate):
-        self.lossGradient = crossEntropyLossPrime(trueY, self.activatedOutput)
-        self.outputGradient = self.outputActivation.backwardPropagation(self.lossGradient)
-        self.hiddenGradient = self.secondLayer.backwardPropagation(self.outputGradient, learningRate)
-        self.activatedGradient = self.inputActivation.backwardPropagation(self.hiddenGradient)
-        self.firstLayer.backwardPropagation(self.activatedGradient, learningRate)
 
 class reluNetwork(neuralNetwork):
     def __init__(self, inputSize, hiddenSize, outputSize):
@@ -141,29 +108,3 @@ class tanhNetwork(neuralNetwork):
         self.activationGradient = self.secondLayer.backwardPropagation(self.lossGradient, learningRate)
         self.hiddenGradient = self.activation.backwardPropagation(self.activationGradient)
         self.firstLayer.backwardPropagation(self.hiddenGradient, learningRate)
-
-
-X = np.array([
-    [1, 0], 
-    [1, 1], 
-    [1, 1], 
-    [1, 1]
-]).T
-
-Y = np.array([[1, 0, 0, 0]])  
-
-network = reluNetwork(inputSize=2, hiddenSize=4, outputSize=1)
-
-epochs = 10000
-learningRate = 0.01
-
-for epoch in range(epochs):
-    output = network.forwardPropagation(X)
-    network.backwardPropagation(Y, learningRate)
-
-test_input = np.array([[1, 0]]).T
-test_output = network.forwardPropagation(test_input)
-if test_output > 0.5:
-    print("Test Output: 1 (odd)")
-else:
-    print("Test Output: 0 (even)")
