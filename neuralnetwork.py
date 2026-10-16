@@ -12,20 +12,23 @@ class layer:
     def backwardPropagation(self):
         pass
 
+
 class dense(layer):
     def __init__(self, inputSize, outputSize):
-        self.weights = np.random.randn(outputSize, inputSize)
-        self.bias = np.random.randn(outputSize, 1)
+        self.weights = np.random.randn(outputSize, inputSize) * np.sqrt(2.0 / inputSize)
+        self.bias = np.random.randn(outputSize, 1) * 0.01
     
     def forwardPropagation(self, input):
         self.input = input
         return np.dot(self.weights, input) + self.bias
 
     def backwardPropagation(self, outputGradient, learningRate):
+        inputGradient = np.dot(self.weights.T, outputGradient)
         weightGradient = np.dot(outputGradient, self.input.T)
         self.weights -= learningRate * weightGradient
         self.bias -= learningRate * np.sum(outputGradient, axis=1, keepdims=True)
-        return np.dot(self.weights.T, outputGradient)
+        return inputGradient
+
 
 # activation functions
 class activation(layer):
@@ -39,25 +42,45 @@ class activation(layer):
     
     def backwardPropagation(self, outputGradient):
         return np.multiply(outputGradient, self.activationPrime(self.input))
-    
+
+
 class tanh(activation):
     def __init__(self):
-        tanh = lambda x: np.tanh(x)
-        tanhPrime = lambda x: 1 - ((np.tanh(x))**2)
-        super().__init__(tanh, tanhPrime)
+        tanhFunction = lambda x: np.tanh(x)
+        tanhPrime = lambda x: 1 - (np.tanh(x) ** 2)
+        super().__init__(tanhFunction, tanhPrime)
+
 
 class relu(activation):
     def __init__(self):
-        relu = lambda x: np.maximum(0, x)
+        reluFunction = lambda x: np.maximum(0, x)
         reluPrime = lambda x: (x > 0).astype(float)
-        super().__init__(relu, reluPrime)
+        super().__init__(reluFunction, reluPrime)
+
+
+class softmax(activation):
+    def __init__(self):
+        softmaxFunction = lambda x: (np.exp(x - np.max(x, axis=0, keepdims=True))/ np.sum(np.exp(x - np.max(x, axis=0, keepdims=True)),axis=0,keepdims=True))
+        softmaxPrime = lambda x: softmaxFunction(x) * (1 - softmaxFunction(x))
+        super().__init__(softmaxFunction, softmaxPrime)
+
 
 # loss functions
 def meanSquaredError(trueY, predY):
-    return np.mean((trueY - predY)**2)
+    return np.mean((trueY - predY) ** 2)
+
 
 def meanSquaredErrorPrime(trueY, predY):
     return (2 * (predY - trueY)) / np.size(trueY)
+
+
+def crossEntropyLoss(trueY, predY):
+    return -np.sum(trueY * np.log(predY + 1e-9))
+
+
+def crossEntropyLossPrime(trueY, predY):
+    return -(trueY / (predY + 1e-9))
+
 
 # neural networks
 class neuralNetwork:
@@ -72,6 +95,28 @@ class neuralNetwork:
 
     def backwardPropagation(self):
         pass
+
+
+class softmaxNetwork(neuralNetwork):
+    def __init__(self, inputSize, hiddenSize, outputSize):
+        self.firstLayer = dense(inputSize, hiddenSize)
+        self.secondLayer = dense(hiddenSize, outputSize)
+        self.inputActivation = relu()
+        self.outputActivation = softmax()
+    
+    def forwardPropagation(self, input):
+        self.hiddenOutput = self.firstLayer.forwardPropagation(input)
+        self.activatedHidden = self.inputActivation.forwardPropagation(self.hiddenOutput)
+        self.finalOutput = self.secondLayer.forwardPropagation(self.activatedHidden)
+        self.activatedOutput = self.outputActivation.forwardPropagation(self.finalOutput)
+        return self.activatedOutput
+
+    def backwardPropagation(self, trueY, learningRate):
+        self.outputGradient = self.activatedOutput - trueY
+        self.hiddenGradient = self.secondLayer.backwardPropagation(self.outputGradient, learningRate)
+        self.activatedGradient = self.inputActivation.backwardPropagation(self.hiddenGradient)
+        self.firstLayer.backwardPropagation(self.activatedGradient, learningRate)
+
 
 class reluNetwork(neuralNetwork):
     def __init__(self, inputSize, hiddenSize, outputSize):
@@ -90,6 +135,7 @@ class reluNetwork(neuralNetwork):
         self.activationGradient = self.secondLayer.backwardPropagation(self.lossGradient, learningRate)
         self.hiddenGradient = self.activation.backwardPropagation(self.activationGradient)
         self.firstLayer.backwardPropagation(self.hiddenGradient, learningRate)
+
 
 class tanhNetwork(neuralNetwork):
     def __init__(self, inputSize, hiddenSize, outputSize):
