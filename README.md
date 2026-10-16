@@ -5,8 +5,8 @@ A neural network library built PURELY in NumPy. No TensorFlow, no PyTorch, no fr
 ## Features
 
 - Dense (fully connected) layers
-- ReLU and tanh activations
-- Mean squared error calculations
+- ReLU, softmax and tanh activations
+- Mean squared error and cross entropy loss calculations
 - Backpropagation and gradient descent
 
 ## Usage
